@@ -2,26 +2,28 @@
 using namespace DxLib;
 
 #define PI 3.1415926535897932384626433832795f
-
 #define SHOT 5
 
 int Coroutine(int time, int set);
 
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine, int nCmdShow)
 {
-	int BallX, BallY, BallGraph[4];
-	int BallGraphCounter, BallMoveFlag;
+	int PackmanX, PackmanY, Packman[4], PackmanReverse;
+	int PackmanCounter, BallMoveFlag, PackmanMoveValue;
 
 	int set = 0;
 
-	int SikakuX, SikakuY, SikakuMuki, SikakuGraph, Sikakureverse;
-	int SikakuDamageFlag, SikakuDamageCounter, SikakuDamageGraph;
+	int BlinkyX, BlinkyY, BlinkyMuki, BlinkyGraph, Blinkyreverse;
+	int BlinkyDamageFlag, BlinkyDamageCounter, BlinkyDamageGraph, BlinkyMoveValue;
+
 	int ShotX[SHOT], ShotY[SHOT], ShotFlag[SHOT], ShotGraph;
-	int SikakuW, SikakuH, ShotW, ShotH;
+
+	int BlinkyW, BlinkyH, ShotW, ShotH;
 	int ShotBFlag;
 	int i;
 
-	int white = GetColor(0, 0, 255);
+	int white = GetColor(255, 255, 255);
 
 	SetFontSize(32);
 
@@ -29,35 +31,41 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 	//画面モードの設定
 	SetGraphMode(640, 480, 16);
 	ChangeWindowMode(true);
+	SetBackgroundColor(0, 120, 138);
+
 
 	//DXライブラリ初期化処理
 	if (DxLib_Init() == -1)	return -1;
 
-	float Ballrotate;
+	float Packmanrotate;
 
 	//グラフィックの描画先を裏画面にセット
 	SetDrawScreen(DX_SCREEN_BACK);
 
-	//ボール君のグラフィックをメモリにロード＆表示座標をセット
-	BallGraph[0] = LoadGraph("../Graphic/パックマン1.png");
-	BallGraph[1] = LoadGraph("../Graphic/パックマン2.png");
-	BallGraph[2] = LoadGraph("../Graphic/パックマン3.png");
-	BallGraph[3] = LoadGraph("../Graphic/パックマン4.png");
-	BallX = 320; BallY = 350; Ballrotate = PI / 2;
-	BallGraphCounter = 0;
+	//パックマンのグラフィックをメモリにロード＆表示座標をセット
+	Packman[0] = LoadGraph("../Graphic/パックマン1.png");
+	Packman[1] = LoadGraph("../Graphic/パックマン2.png");
+	Packman[2] = LoadGraph("../Graphic/パックマン3.png");
+	Packman[3] = LoadGraph("../Graphic/パックマン4.png");
+	PackmanX = 320; PackmanY = 350; Packmanrotate = PI / 2;
+	PackmanCounter = 0;
+	PackmanReverse = 1;
+	PackmanMoveValue = 2;
 
-	//ボール君が動いているかどうかの変数に(動いていない)を表す0を代入
+
+	//パックマンが動いているかどうかの変数に(動いていない)を表す0を代入
 	BallMoveFlag = 0;
 
-	//四角君のグラフィックをメモリにロード＆表示座標をセット
-	SikakuGraph = LoadGraph("../Graphic/ブリンキー.png");
-	SikakuX = 640; SikakuY = 50; Sikakureverse = FALSE;
+	//ブリンキーのグラフィックをメモリにロード＆表示座標をセット
+	BlinkyGraph = LoadGraph("../Graphic/ブリンキー.png");
+	BlinkyX = 640; BlinkyY = 100; Blinkyreverse = FALSE;
+	BlinkyMoveValue = 2;
 
-	//四角君のダメージ時のグラフィックをメモリにロード
-	SikakuDamageGraph = LoadGraph("../Graphic/ゴースト.png");
+	//ブリンキーのダメージ時のグラフィックをメモリにロード
+	BlinkyDamageGraph = LoadGraph("../Graphic/ゴースト.png");
 
-	//四角君がダメージを受けているかどうかの変数に『受けていない』を表す0を代入
-	SikakuDamageFlag = 0;
+	//ブリンキーがダメージを受けているかどうかの変数に『受けていない』を表す0を代入
+	BlinkyDamageFlag = 0;
 
 	//弾のグラフィックをメモリにロード
 	ShotGraph = LoadGraph("../Graphic/Shot.png");
@@ -72,32 +80,36 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 	//ショットボタンが前のフレームで押されたかどうかを保存する変数に０（押されていない）を代入
 	ShotBFlag = 0;
 
-	//四角君の移動方向をセット
-	SikakuMuki = 1;
+	//ブリンキーの移動方向をセット
+	BlinkyMuki = 1;
 
 	//弾のグラフィックサイズを得る
 	GetGraphSize(ShotGraph, &ShotW, &ShotH);
 
-	//四角君のグラフィックのサイズを得る
-	GetGraphSize(SikakuGraph, &SikakuW, &SikakuH);
+	//ブリンキーのグラフィックのサイズを得る
+	GetGraphSize(BlinkyGraph, &BlinkyW, &BlinkyH);
 
 	//移動ルーチン
 	while (ProcessMessage() == 0 && CheckHitKey(KEY_INPUT_ESCAPE) == 0)
 	{
-		if (set == 2)set = 0;
 
-		//ボール君が動いているなら絵が切り替わるかためにカウンタを加算する
+		//パックマンが動いているなら絵が切り替わるかためにカウンタを加算する
 		if (BallMoveFlag == 1)
 		{
-			BallGraphCounter++;
+			PackmanCounter++;
 
 			//もしダメージを受け始めて３０フレーム経過していたらダメージ状態から
 			//元に戻してあげる
-			if (BallGraphCounter == 3)
+			if (PackmanCounter == 10)
 			{
 				//『ダメージを受けていない』を表す０を代入
-				set++;
-				BallGraphCounter = 0;
+				if (set == 2)
+					set = 0;
+				else
+					set++;
+
+				PackmanCounter = 0;
+
 			}
 		}
 
@@ -105,34 +117,41 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 		//画面を初期化(真っ黒にする)
 		ClearDrawScreen();
 
-		//ボール君の操作ルーチン
+		//パックマンの操作ルーチン
 		{
-			//ボール君の移動操作
+			//パックマンの移動操作
 			{
-				// ↑キーを押していたらボール君を上に移動させる
+				// ↑キーを押していたらパックマンを上に移動させる
 				if (CheckHitKey(KEY_INPUT_UP) == 1)
 				{
-					BallY -= 3;
-					Ballrotate = PI / 2;
+					PackmanY -= PackmanMoveValue;
+					Packmanrotate = PI / 2;
 					BallMoveFlag = 1;
+					PackmanReverse = 1;
 				}
-				// ↓キーを押していたらボール君を下に移動させる
+				// ↓キーを押していたらパックマンを下に移動させる
 				else if (CheckHitKey(KEY_INPUT_DOWN) == 1)
 				{
-					BallY += 3;
+					PackmanY += PackmanMoveValue;
 					BallMoveFlag = 1;
+					Packmanrotate = PI / 2;
+					PackmanReverse = 0;
 				}
-				// ←キーを押していたらボール君を左に移動させる
+				// ←キーを押していたらパックマンを左に移動させる
 				else if (CheckHitKey(KEY_INPUT_LEFT) == 1)
 				{
-					BallX -= 3;
+					PackmanX -= PackmanMoveValue;
 					BallMoveFlag = 1;
+					Packmanrotate = PI / 180;
+					PackmanReverse = 1;
 				}
-				// →キーを押していたらボール君を右に移動させる
+				// →キーを押していたらパックマンを右に移動させる
 				else if (CheckHitKey(KEY_INPUT_RIGHT) == 1)
 				{
-					BallX += 3;
+					PackmanX += PackmanMoveValue;
 					BallMoveFlag = 1;
+					Packmanrotate = PI;
+					PackmanReverse = 1;
 				}
 				else
 				{
@@ -157,13 +176,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 						{
 							int Bw, Bh, Sw, Sh;
 
-							//ボール君と弾の画像のサイズを得る
-							GetGraphSize(BallGraph[set], &Bw, &Bh);
+							//パックマンと弾の画像のサイズを得る
+							GetGraphSize(Packman[set], &Bw, &Bh);
 							GetGraphSize(ShotGraph, &Sw, &Sh);
 
-							//弾 i の位置をセット、位置はボール君の中心にする
-							ShotX[i] = (Bw - Sw) / 2 + BallX;
-							ShotY[i] = (Bh - Sh) / 2 + BallY - 20;
+							//弾 i の位置をセット、位置はパックマンの中心にする
+							ShotX[i] = (Bw - Sw) / 2 + PackmanX - 15;
+							ShotY[i] = (Bh - Sh) / 2 + PackmanY - 20;
 
 							//弾 iは現時点を持って存在するので、存在状態を保持する変数に１を代入する
 							ShotFlag[i] = 1;
@@ -186,23 +205,23 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 				//前フレームでショットボタンが押されていたかを保存する変数に０（おされていない）を代入
 				ShotBFlag = 0;
 
-				
+
 			}
 
 
-			//ボール君が画面左端からはみ出しそうになっていたら画面内の座標に戻してあげる
-			if (BallX < -64)BallX = 640;
+			//パックマンが画面左端からはみ出しそうになっていたら画面内の座標に戻してあげる
+			if (PackmanX < -64)PackmanX = 640;
 
-			//ボール君が画面右端からはみ出しそうになったら画面内に戻してあげる
-			if (BallX > 640)BallX = 0;
+			//パックマンが画面右端からはみ出しそうになったら画面内に戻してあげる
+			if (PackmanX > 640)PackmanX = 0;
 
-			// ボール君が画面上端からはみ出そうになっていたら画面内の座標に戻してあげる
-			if (BallY < -64)BallY = 480;
+			// パックマンが画面上端からはみ出そうになっていたら画面内の座標に戻してあげる
+			if (PackmanY < -64)PackmanY = 480;
 
-			// ボール君が画面下端からはみ出そうになっていたら画面内の座標に戻してあげる
-			if (BallY > 480)BallY = 0;
+			// パックマンが画面下端からはみ出そうになっていたら画面内の座標に戻してあげる
+			if (PackmanY > 480)PackmanY = 0;
 
-			DrawRotaGraph2(BallX, BallY, 32, 32, 1, Ballrotate, BallGraph[set], TRUE, TRUE);
+			DrawRotaGraph2(PackmanX, PackmanY, 16, 16, 1, Packmanrotate, Packman[set], TRUE, PackmanReverse);
 		}
 
 		//弾の数だけ弾を動かす処理を繰り返す
@@ -224,48 +243,49 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 				DrawGraph(ShotX[i], ShotY[i], ShotGraph, TRUE);
 			}
 		}
-		//四角君の移動ルーチン
+
+		//ブリンキーの移動ルーチン
 		{
 			//ダメージを受けているかどうかで処理を分岐
-			if (SikakuDamageFlag == 1)
+			if (BlinkyDamageFlag == 1)
 			{
 				//ダメージを受けている場合はダメージグラフィックを描画する
-				DrawRotaGraph2(SikakuX, SikakuY, 32, 32, 1, 0, SikakuDamageGraph, TRUE, Sikakureverse);
+				DrawRotaGraph2(BlinkyX, BlinkyY, 16, 16, 1, 0, BlinkyDamageGraph, TRUE, Blinkyreverse);
 				//ダメージを受けている時間を測るカウンターに1を加算する
-				SikakuDamageCounter++;
+				BlinkyDamageCounter++;
 
 				//もしダメージを受け始めて３０フレーム経過していたらダメージ状態から
 				//元に戻してあげる
-				if (SikakuDamageCounter == 30)
+				if (BlinkyDamageCounter == 30)
 				{
 					//『ダメージを受けていない』を表す０を代入
-					SikakuDamageFlag = 0;
+					BlinkyDamageFlag = 0;
 				}
 			}
 			else
 			{
-				//四角君の座標を移動している方向に移動する
-				if (SikakuMuki == 1)SikakuX += 3;
-				if (SikakuMuki == 0)SikakuX -= 3;
+				//ブリンキーの座標を移動している方向に移動する
+				if (BlinkyMuki == 1)BlinkyX += BlinkyMoveValue;
+				if (BlinkyMuki == 0)BlinkyX -= BlinkyMoveValue;
 
-				//四角君が画面右端から出そうになっていたら画面内の座標に戻してあげ、移動する方向も反転する
-				if (SikakuX > 640)
+				//ブリンキーが画面右端から出そうになっていたら画面内の座標に戻してあげ、移動する方向も反転する
+				if (BlinkyX > 640)
 				{
-					SikakuX = 640;
-					SikakuMuki = 0;
-					Sikakureverse = FALSE;
+					BlinkyX = 640;
+					BlinkyMuki = 0;
+					Blinkyreverse = FALSE;
 				}
 
-				// 四角君が画面左端からでそうになっていたら画面内の座標に戻してあげ、移動する方向も反転する
-				if (SikakuX < 0)
+				// ブリンキーが画面左端からでそうになっていたら画面内の座標に戻してあげ、移動する方向も反転する
+				if (BlinkyX < 0)
 				{
-					SikakuX = 0;
-					SikakuMuki = 1;
-					Sikakureverse = TRUE;
+					BlinkyX = 0;
+					BlinkyMuki = 1;
+					Blinkyreverse = TRUE;
 				}
 
-				// 四角君を描画
-				DrawRotaGraph2(SikakuX, SikakuY, 32, 32, 1, 0, SikakuGraph, TRUE, Sikakureverse);
+				// ブリンキーを描画
+				DrawRotaGraph2(BlinkyX, BlinkyY, 16, 16, 1, 0, BlinkyGraph, TRUE, Blinkyreverse);
 			}
 
 		}
@@ -276,11 +296,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 			//弾iが存在している場合のみ次の処理に映る
 			if (ShotFlag[i] == 1)
 			{
-				//四角君との当たり判定
-				if (((ShotX[i] > SikakuX && ShotX[i] < SikakuX + SikakuW) ||
-					(SikakuX > ShotX[i] && SikakuX < ShotX[i] + ShotW)) &&
-					((ShotY[i] > SikakuY && ShotY[i] < SikakuY + SikakuH) ||
-						(SikakuY > ShotY[i] && SikakuY < ShotY[i] + ShotH)))
+				//ブリンキーとの当たり判定
+				if (((ShotX[i] > BlinkyX && ShotX[i] < BlinkyX + BlinkyW) ||
+					(BlinkyX > ShotX[i] && BlinkyX < ShotX[i] + ShotW)) &&
+					((ShotY[i] > BlinkyY && ShotY[i] < BlinkyY + BlinkyH) ||
+						(BlinkyY > ShotY[i] && BlinkyY < ShotY[i] + ShotH)))
 				{
 					//接触している場合は当たった弾の存在を消す
 					ShotFlag[i] = 0;
@@ -288,17 +308,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 					//接触している場合は当たった弾の存在を消す
 					ShotFlag[i] = 0;
 
-					//四角君がダメージを受けているかどうかを保持する変数に『受けている』を表す１を代入
-					SikakuDamageFlag = 1;
+					//ブリンキーがダメージを受けているかどうかを保持する変数に『受けている』を表す１を代入
+					BlinkyDamageFlag = 1;
 
-					//四角君がダメージを受けている時間を測るカウンタ変数に０を代入
-					SikakuDamageCounter = 0;
+					//ブリンキーがダメージを受けている時間を測るカウンタ変数に０を代入
+					BlinkyDamageCounter = 0;
 				}
 			}
 		}
 
 		//文字列を表示
-		DrawFormatString(0, 0, white, "");
+		DrawFormatString(0, 0, white, "ゲーム画面");
 
 		// 裏画面の内容を表画面にコピーする
 		ScreenFlip();
