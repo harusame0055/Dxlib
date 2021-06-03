@@ -6,7 +6,6 @@ using namespace DxLib;
 #define SHOT 5
 
 int Coroutine(int time);
-
 enum Scene
 {
 	Title,
@@ -93,13 +92,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 	int ETamaW, ETamaH, ETamaGraph;
 	int ETamaCounter;
 
-	int white = GetColor(255, 255, 255);
-	int yellow = GetColor(255, 255, 0);
-
-	Fps fps;
 
 #pragma endregion
-
 #pragma region DxLibの初期化
 	//画面モードの設定
 	SetGraphMode(640, 480, 16);
@@ -116,12 +110,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 	SetDrawScreen(DX_SCREEN_BACK);
 
 #pragma endregion
-
-
 #pragma region 初期化
-	//タイトルに初期化
-	Scene scene = Title;
-
 	//パックマンのグラフィックをメモリにロード＆表示座標をセット
 	Packman[0] = LoadGraph("../Graphic/パックマン1.png");
 	Packman[1] = LoadGraph("../Graphic/パックマン2.png");
@@ -196,12 +185,96 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 	EhitCount = 0;
 #pragma endregion
 
+	//タイトルに初期化
+	Scene scene = Title;
+
+
+
+	int white = GetColor(255, 255, 255);
+	int yellow = GetColor(255, 255, 0);
+
+	Fps fps;
+
 	while (ProcessMessage() == 0 && CheckHitKey(KEY_INPUT_ESCAPE) == 0)
 	{
 		switch (scene)
 		{
 		case Title:
 		{
+#pragma region 初期化
+			//パックマンのグラフィックをメモリにロード＆表示座標をセット
+			Packman[0] = LoadGraph("../Graphic/パックマン1.png");
+			Packman[1] = LoadGraph("../Graphic/パックマン2.png");
+			Packman[2] = LoadGraph("../Graphic/パックマン3.png");
+			Packman[3] = LoadGraph("../Graphic/パックマン4.png");
+			PackmanX = 320; PackmanY = 350; Packmanrotate = PI / 2;
+			PackmanCounter = 0;
+			PackmanReverse = 1;
+			PackmanMoveValue = 3;
+			//パックマンが動いているかどうかの変数に(動いていない)を表す0を代入
+			BallMoveFlag = 0;
+
+			//ブリンキーのグラフィックをメモリにロード＆表示座標をセット
+			BlinkyGraph = LoadGraph("../Graphic/ブリンキー.png");
+			BlinkyX = 640; BlinkyY = 100; Blinkyreverse = FALSE;
+			BlinkyMoveValue = 2;
+
+
+			//弾のグラフィックをメモリにロード
+			ShotGraph = LoadGraph("../Graphic/Shot.png");
+
+			//ブリンキーのダメージ時のグラフィックをメモリにロード
+			BlinkyDamageGraph = LoadGraph("../Graphic/ゴースト.png");
+
+			//敵の弾のグラフィックをロード
+			ETamaGraph = LoadGraph("../Graphic/EShot.png");
+
+
+			//弾のグラフィックサイズを得る
+			GetGraphSize(ShotGraph, &ShotW, &ShotH);
+
+			//ブリンキーがダメージを受けているかどうかの変数に『受けていない』を表す0を代入
+			BlinkyDamageFlag = 0;
+
+			//敵の弾のグラフィックサイズを得る
+			GetGraphSize(ETamaGraph, &ETamaW, &ETamaH);
+
+			//敵の弾が飛んでいるかどうかを保持する変数に『飛んでいない』を表す０を代入
+			ETamaFlag = 0;
+
+			//敵が弾を打つタイミングを取るための計測用変数に0を代入
+			ETamaCounter = 0;
+
+
+
+			//弾１・２が画面上に存在しているか保持する変数に『存在していない』を意味する0を代入しておく
+			for (i = 0; i < SHOT; i++)
+			{
+				ShotFlag[i] = 0;
+			}
+
+			//ショットボタンが前のフレームで押されたかどうかを保存する変数に０（押されていない）を代入
+			ShotBFlag = 0;
+
+			//ブリンキーの移動方向をセット
+			BlinkyMuki = 1;
+
+
+			//ブリンキーのグラフィックのサイズを得る
+			GetGraphSize(BlinkyGraph, &BlinkyW, &BlinkyH);
+
+			//パックマンと弾の画像サイズを得る
+			GetGraphSize(Packman[set], &Bw, &Bh);
+			GetGraphSize(ShotGraph, &Sw, &Sh);
+
+			//ブリンキーと弾の画像サイズを得る
+			GetGraphSize(BlinkyGraph, &Ebw, &Ebh);
+			GetGraphSize(ETamaGraph, &Esw, &Esh);
+
+
+			hitCount = 0;
+			EhitCount = 0;
+#pragma endregion
 			//フォントサイズ
 			SetFontSize(80);
 
@@ -222,6 +295,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 		break;
 		case Main:
 		{
+
 			//フォントサイズ
 			SetFontSize(20);
 
