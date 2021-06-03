@@ -9,6 +9,7 @@ int Coroutine(int time, int set);
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine, int nCmdShow)
 {
+#pragma region 変数宣言
 	int PackmanX, PackmanY, Packman[4], PackmanReverse;
 	int PackmanCounter, BallMoveFlag, PackmanMoveValue;
 
@@ -23,11 +24,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 	int ShotBFlag;
 	int i;
 
+	int ETamaX, ETamaY, ETamaFlag;
+	int ETamaW, ETamaH, ETamaGraph;
+	int ETamaCounter;
+
 	int white = GetColor(255, 255, 255);
 
+
+#pragma endregion
+
+#pragma region DxLibの初期化
 	SetFontSize(32);
-
-
 	//画面モードの設定
 	SetGraphMode(640, 480, 16);
 	ChangeWindowMode(true);
@@ -42,6 +49,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 	//グラフィックの描画先を裏画面にセット
 	SetDrawScreen(DX_SCREEN_BACK);
 
+#pragma endregion
+
+
+#pragma region 初期化
 	//パックマンのグラフィックをメモリにロード＆表示座標をセット
 	Packman[0] = LoadGraph("../Graphic/パックマン1.png");
 	Packman[1] = LoadGraph("../Graphic/パックマン2.png");
@@ -51,8 +62,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 	PackmanCounter = 0;
 	PackmanReverse = 1;
 	PackmanMoveValue = 2;
-
-
 	//パックマンが動いているかどうかの変数に(動いていない)を表す0を代入
 	BallMoveFlag = 0;
 
@@ -67,8 +76,21 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 	//ブリンキーがダメージを受けているかどうかの変数に『受けていない』を表す0を代入
 	BlinkyDamageFlag = 0;
 
+	//敵の弾のグラフィックをロード
+	ETamaGraph = LoadGraph("../Graphic/EShot.png");
+
+	//敵の弾のグラフィックサイズを得る
+	GetGraphSize(ETamaGraph, &ETamaW, &ETamaH);
+
+	//敵の弾が飛んでいるかどうかを保持する変数に『飛んでいない』を表す０を代入
+	ETamaFlag = 0;
+
+	//敵が弾を打つタイミングを取るための計測用変数に0を代入
+	ETamaCounter = 0;
+
 	//弾のグラフィックをメモリにロード
 	ShotGraph = LoadGraph("../Graphic/Shot.png");
+
 
 
 	//弾１・２が画面上に存在しているか保持する変数に『存在していない』を意味する0を代入しておく
@@ -88,6 +110,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 
 	//ブリンキーのグラフィックのサイズを得る
 	GetGraphSize(BlinkyGraph, &BlinkyW, &BlinkyH);
+
+#pragma endregion
+
 
 	//移動ルーチン
 	while (ProcessMessage() == 0 && CheckHitKey(KEY_INPUT_ESCAPE) == 0)
@@ -158,7 +183,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 					BallMoveFlag = 0;
 				}
 			}
-
 
 			//スペースキーを押した場合は処理を分岐
 			if (CheckHitKey(KEY_INPUT_SPACE))
@@ -286,9 +310,46 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 
 				// ブリンキーを描画
 				DrawRotaGraph2(BlinkyX, BlinkyY, 16, 16, 1, 0, BlinkyGraph, TRUE, Blinkyreverse);
+
+				//弾を打つタイミングを計測するためのカウンターに１ずつを加算
+				ETamaCounter++;
+
+				//もしカウンター変数が６０だった場合は弾を打つ処理を行う
+				if (ETamaCounter == 60)
+				{
+					//もしすでに弾が『飛んでいない』状態だった場合のみ発射処理を行う
+					if (ETamaFlag == 0)
+					{
+						//弾の発射位置を設定する
+						ETamaX = BlinkyX + BlinkyW / 2 - ETamaW / 2;
+						ETamaY = BlinkyY + BlinkyH / 2 - ETamaH / 2;
+						//弾の状態を保持する変数に『飛んでいる』を示す１を代入する
+						ETamaFlag = 1;
+
+					}
+					//弾を打つタイミングを計測するための変数に０を代入
+					ETamaCounter = 0;
+				}
+
 			}
 
 		}
+
+		//敵の弾の状態が『飛んでいる』場合のみ弾の移動処理を行う
+		if (ETamaFlag == 1)
+		{
+			//少し下にずらす
+			ETamaY += 8;
+
+			//もし弾が画面下端からはみ出てしまった場合は弾の状態を『飛んでいない』
+			//を表す０にする
+			if (ETamaY > 480)
+				ETamaFlag = 0;
+
+			//画面に描画する(ETamaGraph :敵の弾のグラフィックのハンドル)
+			DrawGraph(ETamaX, ETamaY, ETamaGraph, TRUE);
+		}
+
 
 		//弾と敵の当たり判定、弾の数だけ繰り返す
 		for (i = 0; i < SHOT; i++)
