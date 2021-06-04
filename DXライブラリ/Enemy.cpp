@@ -1,7 +1,7 @@
-//#include"DxLib.h"
-//#include "Player.h"
-//#include"Enemy.h"
-//#include<math.h>
+#include"DxLib.h"
+#include "Player.h"
+#include"Enemy.h"
+#include<math.h>
 //
 //void Enemy_Initialization()
 //{

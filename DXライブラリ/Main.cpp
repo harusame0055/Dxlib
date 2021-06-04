@@ -1,11 +1,14 @@
 #include"DxLib.h"
 #include<math.h>
+#include"Player.h"
+#include"Enemy.h"
 using namespace DxLib;
 
 #define PI 3.1415926535897932384626433832795f
 #define SHOT 5
-
+#define SHOTSPEED 10;
 int Coroutine(int time);
+int SeceneGraph[4];
 
 enum Scene
 {
@@ -59,8 +62,9 @@ public:
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine, int nCmdShow)
 {
 #pragma region 変数宣言
-	int PackmanX, PackmanY, Packman[4], PackmanReverse;
+	int PackmanX, PackmanY, Packman[5], PackmanReverse;
 	int PackmanCounter, BallMoveFlag, PackmanMoveValue;
+	int PackmanDamageFlag, PackmanDamageCounter;
 
 	int hitCount;
 	int EhitCount;
@@ -121,12 +125,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 #pragma region 初期化
 	//タイトルに初期化
 	Scene scene = Title;
+	SeceneGraph[0]= LoadGraph("../Graphic/五条悟.jpg");
+
 
 	//パックマンのグラフィックをメモリにロード＆表示座標をセット
 	Packman[0] = LoadGraph("../Graphic/パックマン1.png");
 	Packman[1] = LoadGraph("../Graphic/パックマン2.png");
 	Packman[2] = LoadGraph("../Graphic/パックマン3.png");
 	Packman[3] = LoadGraph("../Graphic/パックマン4.png");
+	Packman[4] = LoadGraph("../Graphic/ダメージパックマン.png");
+	PackmanDamageFlag = 0;
+
 	PackmanX = 320; PackmanY = 350; Packmanrotate = PI / 2;
 	PackmanCounter = 0;
 	PackmanReverse = 1;
@@ -203,13 +212,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 		case Title:
 		{
 			//フォントサイズ
-			SetFontSize(80);
-
-			DrawFormatString(220, 200, yellow, "Title");
-
+			DrawGraph(0, 0, SeceneGraph[0], TRUE);
 			//フォントサイズ
 			SetFontSize(20);
-			DrawFormatString(10, 10, yellow, "Enterを押すと遊べます");
+			DrawFormatString(250, 240, white, "Enterを押すと遊べます");
 			// 裏画面の内容を表画面にコピーする
 			ScreenFlip();
 
@@ -225,39 +231,61 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 			//フォントサイズ
 			SetFontSize(20);
 
-			//パックマンのアニメーション
-			{
-				if (set == 3)
-					set = Coroutine(60);
-
-				//パックマンが動いているなら絵が切り替わるかためにカウンタを加算する
-				if (BallMoveFlag == 1)
-				{
-					PackmanCounter++;
-
-					//もしダメージを受け始めて３０フレーム経過していたらダメージ状態から
-					//元に戻してあげる
-					if (PackmanCounter == 3)
-					{
-						//『ダメージを受けていない』を表す０を代入
-						if (set == 2 || set == 3)
-							set = 0;
-						else
-							set++;
-
-						PackmanCounter = 0;
-
-					}
-				}
-			}
 
 			//画面を初期化(真っ黒にする)
 			ClearDrawScreen();
 
 			//パックマンの操作ルーチン
 			{
-				//パックマンの移動操作
+				//ダメージを受けているかどうかで処理を分岐
+				if (PackmanDamageFlag == 1)
 				{
+					set = 4;
+
+					//ダメージを受けている場合はダメージグラフィックを描画する
+					DrawRotaGraph2(BlinkyX, BlinkyY, 16, 16, 1, 0, Packman[set], TRUE, PackmanReverse);
+					//ダメージを受けている時間を測るカウンターに1を加算する
+					PackmanDamageCounter++;
+
+					//もしダメージを受け始めて３０フレーム経過していたらダメージ状態から
+					//元に戻してあげる
+					if (PackmanDamageCounter == 30)
+					{
+						//『ダメージを受けていない』を表す０を代入
+						PackmanDamageFlag = 0;
+						set = 0;
+					}
+				}
+				//パックマンの移動操作
+				else 
+				{
+
+					//パックマンのアニメーション
+					{
+						if (set == 3)
+							set = Coroutine(60);
+
+						//パックマンが動いているなら絵が切り替わるかためにカウンタを加算する
+						if (BallMoveFlag == 1)
+						{
+							PackmanCounter++;
+
+							//もしダメージを受け始めて３０フレーム経過していたらダメージ状態から
+							//元に戻してあげる
+							if (PackmanCounter == 3)
+							{
+								//『ダメージを受けていない』を表す０を代入
+								if (set == 2 || set == 3)
+									set = 0;
+								else
+									set++;
+
+								PackmanCounter = 0;
+
+							}
+						}
+					}
+
 					// ↑キーを押していたらパックマンを上に移動させる
 					if (CheckHitKey(KEY_INPUT_UP) == 1)
 					{
@@ -329,8 +357,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 
 									sb = sqrt(sbx * sbx + sby * sby);
 
-									ShotSx = sbx / sb * 8;
-									ShotSy = sby / sb * 8;
+									ShotSx = sbx / sb * SHOTSPEED;
+									ShotSy = sby / sb * SHOTSPEED;
 
 									//弾 iは現時点を持って存在するので、存在状態を保持する変数に１を代入する
 									ShotFlag[i] = 1;
@@ -465,8 +493,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 								sb = sqrt(sbx * sbx + sby * sby);
 
 								//１フレーム当たり８ドット移動するようにする
-								ETamaSx = sbx / sb * 8;
-								ETamaSy = sby / sb * 8;
+								ETamaSx = sbx / sb * SHOTSPEED;
+								ETamaSy = sby / sb * SHOTSPEED;
 							}
 
 							//弾の状態を保持する変数に『飛んでいる』を示す１を代入する
@@ -499,11 +527,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 					((ETamaY > PackmanY && ETamaY < PackmanY + Bh) ||
 						(PackmanY > ETamaY && PackmanY < ETamaY + ETamaH)))
 				{
+
+					if (PackmanDamageFlag == 0)
+						//ヒットカウントを加算する
+						hitCount++;
+
+					//ブリンキーがダメージを受けているかどうかを保持する変数に『受けている』を表す１を代入
+					PackmanDamageFlag = 1;
+
+					//ブリンキーがダメージを受けている時間を測るカウンタ変数に０を代入
+					PackmanDamageCounter = 0;
+
 					//接触している場合は当たった弾の存在を消す
 					ETamaFlag = 0;
 
-					//ヒットカウントを加算する
-					hitCount++;
 				}
 
 				//画面に描画する(ETamaGraph :敵の弾のグラフィックのハンドル)
@@ -568,7 +605,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 			//フォントサイズ
 			SetFontSize(80);
 
-			DrawFormatString(220, 200, yellow, "GameClear");
+			DrawFormatString(180, 200, yellow, "GameClear");
 			// 裏画面の内容を表画面にコピーする
 			ScreenFlip();
 
@@ -584,7 +621,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 			//フォントサイズ
 			SetFontSize(80);
 
-			DrawFormatString(220, 200, yellow, "GameOver");
+			DrawFormatString(180, 200, yellow, "GameOver");
 			// 裏画面の内容を表画面にコピーする
 			ScreenFlip();
 

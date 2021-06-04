@@ -1,3 +1,3 @@
-//#pragma once
-//extern 
-//#include<math.h>
+#pragma once
+void Initialization();
+void DxLib_Initialization()
