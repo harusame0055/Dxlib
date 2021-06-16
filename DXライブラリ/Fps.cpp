@@ -1,6 +1,6 @@
 #include"Fps.h"
 
-Fps::Fps() 
+Fps::Fps()
 {
 	mStartTime = 0;
 	mCount = 0;

@@ -1,31 +1,8 @@
 #pragma once
-
+#include "Fps.h"
 class Game {
 
 #pragma region 変数宣言
-	//=======================
-	// 	   パックマンに使う変数
-	int PackmanX, PackmanY, Packman[5], PackmanReverse;
-	int PackmanCounter, BallMoveFlag;
-	int PackmanDamageFlag, PackmanDamageCounter;
-
-	int  PackmanMoveValue;		//パックマンの移動スピード
-	int ShotSpeed;					//弾のスピード
-
-	//パックマンにヒットしたカウント	
-	int hitCount;
-
-	double ShotX[SHOT], ShotY[SHOT];
-	double ShotSx, ShotSy;
-	int ShotFlag[SHOT], ShotGraph;
-
-	//画像の描画変更
-	int set = 0;
-
-	//パックマンと弾の画像サイズ
-	int Bw, Bh, Sw, Sh;
-
-	//===================================
 
 	//===================================
 	//　アイテムに使用する変数
@@ -40,13 +17,18 @@ class Game {
 	//================================
 	// 	   ブリンキーの変数
 	//ブリンキーと弾の画像サイズ
-	int Ebw, Ebh, Esw, Esh;
-	int BlinkyX, BlinkyY, BlinkyMuki, BlinkyGraph, Blinkyreverse, BlinkyMukiCounter;
-	int BlinkyDamageFlag, BlinkyDamageCounter, BlinkyDamageGraph, BlinkyMoveValue;
+
+	int BlinkyX, BlinkyY;
+
+	int Ebw, Ebh;
+
+	int BlinkyW, BlinkyH;
+
+	int Esw, Esh;
+	int BlinkyMuki, BlinkyGraph, Blinkyreverse, BlinkyMukiCounter;
+	int  BlinkyDamageGraph, BlinkyMoveValue;
 	int ETamaSpeed = 0;
 
-	int BlinkyW, BlinkyH, ShotW, ShotH;
-	int ShotBFlag;
 	int i;
 
 	double ETamaX, ETamaY;
@@ -58,8 +40,7 @@ class Game {
 	int ETamaCounter;
 
 
-	//ブリンキーにヒットしたカウント
-	int EhitCount;
+	static const int WindowWidth = 1024, WindowHeight = 480;
 
 	//================================
 
@@ -67,6 +48,14 @@ class Game {
 	int yellow = GetColor(255, 255, 0);
 
 
+
+	//ブリンキーにヒットしたカウント
+	int EhitCount;
+	int BlinkyDamageFlag, BlinkyDamageCounter;
+
+	int ShotAudio, HitAudio;
+
+	int LoadScene;
 
 	Fps fps;
 
@@ -76,18 +65,36 @@ class Game {
 	int Input;
 	int Count;
 	int AudioOneShot;
-	int ShotAudio, HitAudio;
 	int AudioSound[3];
 	int PowerUpAudio;
 	int ItemGet;
 	int ItemGetCounter;
 
-	float Packmanrotate;
-
 public:
-	void initialize();
 
+	void initialize();
 	void Update();
+	void ShotPlayAudio();
+	void EnemyHitCount() { EhitCount++; };
+	void DamageFlag(int flag)
+	{
+		BlinkyDamageFlag = flag;
+	};
+	int GetDamageFlag() { return BlinkyDamageFlag; };
+
+	void DamageCounter(int counter) { BlinkyDamageCounter = counter; };
 
 	int Coroutine(int time);
+	int GetWidth() { return WindowWidth; };
+	int GetHeight() { return WindowHeight; };
+
+	int GetPosX() { return BlinkyX; };
+	int GetPosY() { return BlinkyY; };
+	int GetEbw() { return Ebw; };
+	int GetEbh() { return Ebh; };
+	int GetEnemyW() { return BlinkyW; };
+	int GetEnemyH() { return BlinkyH; };
+
+
+
 };

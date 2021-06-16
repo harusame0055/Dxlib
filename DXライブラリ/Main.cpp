@@ -2,15 +2,6 @@
 #include<math.h>
 using namespace DxLib;
 
-#define PI 3.1415926535897932384626433832795f
-
-#define SHOT 5
-#define ITEM 5
-
-
-int WindowWidth = 1024, WindowHeight = 480;
-
-int LoadScene;
 // 追加したやつ
 #include"Scene.h"
 #include"Fps.h"
@@ -18,23 +9,20 @@ int LoadScene;
 #include"Player.h"
 
 	//タイトルに初期化
-Scene scene = Title;
-Game game;
+Scene scene;
 Player player;
-
 /// <summary>
 /// 変数の初期化関数
 /// </summary>
 void Game::initialize()
 {
 	sceneGraph[0] = LoadGraph("../Graphic/Title2.png");
-	sceneGraph[1] = LoadGraph("../Graphic/狗巻.jpg");
-	sceneGraph[2] = LoadGraph("../Graphic/敗北者.jpg");
+	sceneGraph[1] = LoadGraph("../Graphic/GameClear.png");
+	sceneGraph[2] = LoadGraph("../Graphic/GameOver.png");
 
 	Level = 1;
 	Input = 0;
 	Count = 0;
-	int WindowWidth = 1024, WindowHeight = 480;
 
 	AudioOneShot = 0;
 
@@ -56,6 +44,13 @@ void Game::initialize()
 	ItemX = GetRand(WindowWidth - 50) + 20;
 	ItemY = GetRand(WindowHeight - 50) + 20;
 
+
+	//ブリンキーのグラフィックをメモリにロード＆表示座標をセット
+	BlinkyGraph = LoadGraph("../Graphic/ブリンキー.png");
+	BlinkyX = 640; BlinkyY = 100; Blinkyreverse = FALSE;
+	BlinkyMukiCounter = 0;
+
+	BlinkyDamageCounter = 0;
 
 	LoadScene = 0;
 
@@ -115,26 +110,7 @@ void Game::Update()
 		{
 #pragma region 初期化
 
-			//パックマンのグラフィックをメモリにロード＆表示座標をセット
-			Packman[0] = LoadGraph("../Graphic/パックマン1.png");
-			Packman[1] = LoadGraph("../Graphic/パックマン2.png");
-			Packman[2] = LoadGraph("../Graphic/パックマン3.png");
-			Packman[3] = LoadGraph("../Graphic/パックマン4.png");
-			Packman[4] = LoadGraph("../Graphic/ダメージパックマン.png");
-			PackmanX = 320; PackmanY = 350; Packmanrotate = PI / 2;
-			PackmanCounter = 0;
-			PackmanReverse = 1;
-			//パックマンが動いているかどうかの変数に(動いていない)を表す0を代入
-			BallMoveFlag = 0;
-			PackmanDamageFlag = 0;
-			PackmanMoveValue = 5;
-
-			ShotSpeed = 10;
-
-			//ブリンキーのグラフィックをメモリにロード＆表示座標をセット
-			BlinkyGraph = LoadGraph("../Graphic/ブリンキー.png");
-			BlinkyX = 640; BlinkyY = 100; Blinkyreverse = FALSE;
-			BlinkyMukiCounter = 0;
+			player.initialize();
 
 			switch (Level)
 			{
@@ -154,17 +130,13 @@ void Game::Update()
 				break;
 			}
 
-			//弾のグラフィックをメモリにロード
-			ShotGraph = LoadGraph("../Graphic/Shot.png");
-
 			//ブリンキーのダメージ時のグラフィックをメモリにロード
 			BlinkyDamageGraph = LoadGraph("../Graphic/ゴースト.png");
 
 			//敵の弾のグラフィックをロード
 			ETamaGraph = LoadGraph("../Graphic/EShot.png");
 
-			//弾のグラフィックサイズを得る
-			GetGraphSize(ShotGraph, &ShotW, &ShotH);
+
 
 			//ブリンキーがダメージを受けているかどうかの変数に『受けていない』を表す0を代入
 			BlinkyDamageFlag = 0;
@@ -181,15 +153,8 @@ void Game::Update()
 			//ITEMのグラフィックサイズを得る
 			GetGraphSize(Item, &ItemW, &ItemH);
 
-			//弾１・２が画面上に存在しているか保持する変数に『存在していない』を意味する0を代入しておく
-			for (i = 0; i < SHOT; i++)
-			{
-				ShotFlag[i] = 0;
-			}
 
 			ItemFlag = 0;
-			//ショットボタンが前のフレームで押されたかどうかを保存する変数に０（押されていない）を代入
-			ShotBFlag = 0;
 
 			//ブリンキーの移動方向をセット
 			BlinkyMuki = 1;
@@ -197,15 +162,10 @@ void Game::Update()
 			//ブリンキーのグラフィックのサイズを得る
 			GetGraphSize(BlinkyGraph, &BlinkyW, &BlinkyH);
 
-			//パックマンと弾の画像サイズを得る
-			GetGraphSize(Packman[set], &Bw, &Bh);
-			GetGraphSize(ShotGraph, &Sw, &Sh);
-
 			//ブリンキーと弾の画像サイズを得る
 			GetGraphSize(BlinkyGraph, &Ebw, &Ebh);
 			GetGraphSize(ETamaGraph, &Esw, &Esh);
 
-			hitCount = 0;
 			EhitCount = 0;
 
 			ItemCounter = 0;
@@ -236,187 +196,7 @@ void Game::Update()
 		//画面を初期化(真っ黒にする)
 		ClearDrawScreen();
 		//パックマンの操作ルーチン
-		{
-			//ダメージを受けているかどうかで処理を分岐
-			if (PackmanDamageFlag == 1)
-			{
-				set = 4;
-
-				//ダメージを受けている場合はダメージグラフィックを描画する
-				DrawRotaGraph2(PackmanX, PackmanY, 16, 16, 1, 0, Packman[set], TRUE, PackmanReverse);
-				//ダメージを受けている時間を測るカウンターに1を加算する
-				PackmanDamageCounter++;
-
-				//もしダメージを受け始めて３０フレーム経過していたらダメージ状態から
-				//元に戻してあげる
-				if (PackmanDamageCounter == 30)
-				{
-					//『ダメージを受けていない』を表す０を代入
-					PackmanDamageFlag = 0;
-					set = 0;
-				}
-			}
-			//パックマンの移動操作
-			else
-			{
-				//パックマンのアニメーション
-				{
-					if (set == 3)
-						set = game.Coroutine(60);
-
-					//パックマンが動いているなら絵が切り替わるかためにカウンタを加算する
-					if (BallMoveFlag == 1)
-					{
-						PackmanCounter++;
-
-						//もしダメージを受け始めて３０フレーム経過していたらダメージ状態から
-						//元に戻してあげる
-						if (PackmanCounter == 3)
-						{
-							//『ダメージを受けていない』を表す０を代入
-							if (set == 2 || set == 3)
-								set = 0;
-							else
-								set++;
-
-							PackmanCounter = 0;
-
-						}
-					}
-				}
-
-				// ↑キーを押していたらパックマンを上に移動させる
-				if (CheckHitKey(KEY_INPUT_UP) == 1)
-				{
-					PackmanY -= PackmanMoveValue;
-					Packmanrotate = PI / 2;
-					BallMoveFlag = 1;
-					PackmanReverse = 1;
-				}
-				// ↓キーを押していたらパックマンを下に移動させる
-				else if (CheckHitKey(KEY_INPUT_DOWN) == 1)
-				{
-					PackmanY += PackmanMoveValue;
-					BallMoveFlag = 1;
-					Packmanrotate = PI / 2;
-					PackmanReverse = 0;
-				}
-				// ←キーを押していたらパックマンを左に移動させる
-				else if (CheckHitKey(KEY_INPUT_LEFT) == 1)
-				{
-					PackmanX -= PackmanMoveValue;
-					BallMoveFlag = 1;
-					Packmanrotate = PI / 180;
-					PackmanReverse = 1;
-				}
-				// →キーを押していたらパックマンを右に移動させる
-				else if (CheckHitKey(KEY_INPUT_RIGHT) == 1)
-				{
-					PackmanX += PackmanMoveValue;
-					BallMoveFlag = 1;
-					Packmanrotate = PI;
-					PackmanReverse = 1;
-				}
-				else
-				{
-					BallMoveFlag = 0;
-				}
-
-
-				//スペースキーを押した場合は処理を分岐
-				if (CheckHitKey(KEY_INPUT_SPACE))
-				{
-
-					set = 3;
-					//前フレームでショットボタンを押したかが保存されている変数が0だったら弾を発射
-					if (ShotBFlag == 0)
-					{
-						//画面上に出ていない弾があるか、弾の数だけ繰り返して調べる
-						for (i = 0; i < SHOT; i++)
-						{
-							//弾iが画面上に出ていない場合はその弾を画面に出す
-							if (ShotFlag[i] == 0)
-							{
-								//弾 i の位置をセット、位置はパックマンの中心にする
-								ShotX[i] = (Bw - Sw) / 2 + PackmanX;
-								ShotY[i] = (Bh - Sh) / 2 + PackmanY;
-
-								//弾の移動速度を設定する
-								{
-									double sb, sbx, sby, bx, by, sx, sy;
-
-									sx = ShotX[i] + ShotW / 2;
-									sy = ShotY[i] + ShotH / 2;
-
-									bx = BlinkyX + Ebw / 2;
-									by = BlinkyY + Ebh / 2;
-
-									sbx = bx - sx;
-									sby = by - sy;
-
-									sb = sqrt(sbx * sbx + sby * sby);
-
-									ShotSx = sbx / sb * ShotSpeed;
-									ShotSy = sby / sb * ShotSpeed;
-
-									//弾 iは現時点を持って存在するので、存在状態を保持する変数に１を代入する
-									ShotFlag[i] = 1;
-									PlaySoundMem(ShotAudio, DX_PLAYTYPE_BACK);
-
-									//一つ球を出したので球を出すループから抜けます
-									break;
-								}
-
-							}
-						}
-					}
-
-					//前フレームでショットボタンを押されていたかを保存する変数に１（押されていた）を代入
-					ShotBFlag = 1;
-				}
-				else
-				{
-					//ショットボタンが押されていなかった場合は
-					//前フレームでショットボタンが押されていたかを保存する変数に０（おされていない）を代入
-					ShotBFlag = 0;
-
-				}
-			}
-
-			//パックマンが画面左端からはみ出しそうになっていたら画面内の座標に戻してあげる
-			if (PackmanX < -64)PackmanX = WindowWidth;
-
-			//パックマンが画面右端からはみ出しそうになったら画面内に戻してあげる
-			if (PackmanX > WindowWidth)PackmanX = 0;
-
-			// パックマンが画面上端からはみ出そうになっていたら画面内の座標に戻してあげる
-			if (PackmanY < -64)PackmanY = WindowHeight;
-
-			// パックマンが画面下端からはみ出そうになっていたら画面内の座標に戻してあげる
-			if (PackmanY > WindowHeight)PackmanY = 0;
-
-			DrawRotaGraph2(PackmanX, PackmanY, 16, 16, 1, Packmanrotate, Packman[set], TRUE, PackmanReverse);
-		}
-
-		//弾の数だけ弾を動かす処理を繰り返す
-		for (i = 0; i < SHOT; i++)
-		{
-			//自機の弾１の移動ルーチン(存在状態を保持している変数の内容が1(存在する)の場合のみ行う)
-			if (ShotFlag[i] == 1)
-			{
-				//弾iを16ドット上に移動させる
-				ShotX[i] += ShotSx;
-				ShotY[i] += ShotSy;
-
-				//画面外に出てしまった場合は存在状態を保持している変数に0（存在しない）を代入する
-				if (ShotY[i] > WindowHeight || ShotY[i] < 0 ||
-					ShotX[i]>WindowWidth || ShotX[i] < 0)
-					ShotFlag[i] = 0;
-
-				//画面に弾 i を描画する
-				DrawGraph((int)ShotX[i], (int)ShotY[i], ShotGraph, TRUE);
-			}
-		}
+		player.PlayerMove();
 
 		//ブリンキーの移動ルーチン
 		{
@@ -428,8 +208,8 @@ void Game::Update()
 				//ダメージを受けている時間を測るカウンターに1を加算する
 				BlinkyDamageCounter++;
 
-				//もしダメージを受け始めて３０フレーム経過していたらダメージ状態から
-				//元に戻してあげる
+				//		//もしダメージを受け始めて３０フレーム経過していたらダメージ状態から
+				//		//元に戻してあげる
 				if (BlinkyDamageCounter == 30)
 				{
 					//『ダメージを受けていない』を表す０を代入
@@ -509,8 +289,8 @@ void Game::Update()
 							sx = ETamaX + ETamaW / 2;
 							sy = ETamaY + ETamaH / 2;
 
-							bx = PackmanX + Bw / 2;
-							by = PackmanY + Bh / 2;
+							bx = player.GetPosX() + player.GetBw() / 2;
+							by = player.GetPosY() + player.GetBh() / 2;
 
 							sbx = bx - sx;
 							sby = by - sy;
@@ -522,8 +302,7 @@ void Game::Update()
 							//１フレーム当たり８ドット移動するようにする
 							ETamaSx = sbx / sb * ETamaSpeed;
 							ETamaSy = sby / sb * ETamaSpeed;
-
-							PlaySoundMem(ShotAudio, DX_PLAYTYPE_BACK);
+							ShotPlayAudio();
 						}
 
 						//弾の状態を保持する変数に『飛んでいる』を示す１を代入する
@@ -534,6 +313,13 @@ void Game::Update()
 				}
 			}
 		}
+
+		//弾の数だけ弾を動かす処理を繰り返す
+		player.ShotMove();
+
+		//弾と敵の当たり判定、弾の数だけ繰り返す
+		//player.ShotHitCheck();
+
 		//敵の弾の状態が『飛んでいる』場合のみ弾の移動処理を行う
 		if (ETamaFlag == 1)
 		{
@@ -544,24 +330,26 @@ void Game::Update()
 			//もし弾が画面下端からはみ出てしまった場合は弾の状態を『飛んでいない』
 			//を表す０にする
 			if (ETamaY > WindowHeight || ETamaY < 0 ||
-				ETamaX>WindowWidth || ETamaX < 0)ETamaFlag = 0;
+				ETamaX>WindowWidth || ETamaX < 0)
+				ETamaFlag = 0;
 
 			//パックマンとの当たり判定
-			if (((ETamaX > PackmanX && ETamaX < PackmanX + Bw) ||
-				(PackmanX > ETamaX && PackmanX < ETamaX + ETamaW)) &&
-				((ETamaY > PackmanY && ETamaY < PackmanY + Bh) ||
-					(PackmanY > ETamaY && PackmanY < ETamaY + ETamaH)))
+			if (((ETamaX > player.GetPosX() && ETamaX < player.GetPosX() + player.GetBw()) ||
+				(player.GetPosX() > ETamaX && player.GetPosX() < ETamaX + ETamaW)) &&
+				((ETamaY > player.GetPosY() && ETamaY < player.GetPosY() + player.GetBh()) ||
+					(player.GetPosY() > ETamaY && player.GetPosY() < ETamaY + ETamaH)))
 			{
-				if (PackmanDamageFlag == 0)
+				if (player.GetDamageFlag() == 0)
 					//ヒットカウントを加算する
-					hitCount++;
+					player.HitCount();
 
 				//ブリンキーがダメージを受けているかどうかを保持する変数に『受けている』を表す１を代入
-				PackmanDamageFlag = 1;
+				player.DamegeFlag(1);
+
 				PlaySoundMem(HitAudio, DX_PLAYTYPE_BACK);
 
 				//ブリンキーがダメージを受けている時間を測るカウンタ変数に０を代入
-				PackmanDamageCounter = 0;
+				player.DamageCounter(0);
 
 				//接触している場合は当たった弾の存在を消す
 				ETamaFlag = 0;
@@ -571,82 +359,10 @@ void Game::Update()
 			DrawGraph((int)ETamaX, (int)ETamaY, ETamaGraph, TRUE);
 		}
 
-#pragma region アイテム関連
+		//player.ItemGeneration();
 
-		if (ItemFlag == 0)
-		{
-			ItemCounter++;
-			if (ItemCounter == 1000)
-			{
-				ItemFlag = 1;
-				ItemCounter = 0;
-			}
-		}
 
-		if (ItemFlag == 1)
-		{
-			DrawGraph(ItemX, ItemY, Item, TRUE);
-
-			if (((ItemX > PackmanX && ItemX < PackmanX + Bw) ||
-				(PackmanX > ItemX && PackmanX < ItemX + ItemW)) &&
-				((ItemY > PackmanY && ItemY < PackmanY + Bh) ||
-					(PackmanY > ItemY && PackmanY < ItemY + ItemH)))
-			{
-				Item = 0;
-
-				ItemGet = 1;
-
-				StopSoundMem(AudioSound[1]);
-			}
-		}
-
-		if (ItemGet == 1)
-		{
-			if (ItemGet == 1)
-			{
-				PackmanMoveValue = 10;
-				ItemGetCounter = 1;
-
-				if (CheckSoundMem(PowerUpAudio) == 0)
-				{
-					PackmanMoveValue = 5;
-				}
-				else
-					ItemGetCounter = 0;
-			}
-		}
-
-#pragma endregion
-
-		//弾と敵の当たり判定、弾の数だけ繰り返す
-		for (i = 0; i < SHOT; i++)
-		{
-			//弾iが存在している場合のみ次の処理に映る
-			if (ShotFlag[i] == 1)
-			{
-				//ブリンキーとの当たり判定
-				if (((ShotX[i] > BlinkyX && ShotX[i] < BlinkyX + BlinkyW) ||
-					(BlinkyX > ShotX[i] && BlinkyX < ShotX[i] + ShotW)) &&
-					((ShotY[i] > BlinkyY && ShotY[i] < BlinkyY + BlinkyH) ||
-						(BlinkyY > ShotY[i] && BlinkyY < ShotY[i] + ShotH)))
-				{
-					//接触している場合は当たった弾の存在を消す
-					ShotFlag[i] = 0;
-
-					if (BlinkyDamageFlag == 0)
-						//ヒットカウントを加算する
-						EhitCount++;
-					PlaySoundMem(HitAudio, DX_PLAYTYPE_BACK);
-
-					//ブリンキーがダメージを受けているかどうかを保持する変数に『受けている』を表す１を代入
-					BlinkyDamageFlag = 1;
-
-					//ブリンキーがダメージを受けている時間を測るカウンタ変数に０を代入
-					BlinkyDamageCounter = 0;
-				}
-			}
-		}
-		DrawFormatString(0, 0, white, "ブリンキーにあてた回数 : %d \n 当たった回数 : %d", EhitCount, hitCount);
+		DrawFormatString(0, 0, white, "ブリンキーにあてた回数 : %d \n 当たった回数 : %d", BlinkyDamageCounter, BlinkyDamageFlag);
 		DrawFormatString(850, 0, white, "space :弾を発射 \n十字キー : 移動");
 
 		fps.Update();	//更新
@@ -700,7 +416,7 @@ void Game::Update()
 			}
 
 		}
-		else if (hitCount == 10)
+		else if (player.GetHitCount() == 10)
 		{
 			LoadScene = 3;
 			AudioOneShot = 0;
@@ -711,6 +427,9 @@ void Game::Update()
 	break;
 	case GameClear:
 	{
+		//画面を初期化(真っ黒にする)
+		ClearDrawScreen();
+
 		if (AudioOneShot == 0)
 		{
 			AudioOneShot = 1;
@@ -730,12 +449,15 @@ void Game::Update()
 	break;
 	case GameOver:
 	{
+		//画面を初期化(真っ黒にする)
+		ClearDrawScreen();
+
 		if (AudioOneShot == 0)
 		{
-			PlaySoundMem(AudioSound[2], DX_PLAYTYPE_NORMAL);
+			PlaySoundMem(AudioSound[2], DX_PLAYTYPE_BACK);
 			AudioOneShot = 1;
 		}
-		DrawGraph(0, 50, sceneGraph[2], TRUE);
+		DrawGraph(0, 0, sceneGraph[2], TRUE);
 		// 裏画面の内容を表画面にコピーする
 		ScreenFlip();
 
@@ -751,8 +473,10 @@ void Game::Update()
 	{
 		Count++;
 
+		//画面を初期化(真っ黒にする)
+		ClearDrawScreen();
+
 		fps.Update();	//更新
-		fps.Draw();		//描画
 		fps.Wait();		//待機
 
 		if (Count == 50)
@@ -768,16 +492,22 @@ void Game::Update()
 	}
 }
 
+void Game::ShotPlayAudio()
+{
+	PlaySoundMem(ShotAudio, DX_PLAYTYPE_BACK);
+}
+
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine, int nCmdShow)
 {
+	Game game;
 
 #pragma region DxLibの初期化
 
 	//画面モードの設定
-	SetGraphMode(WindowWidth, WindowHeight, 16);
+	SetGraphMode(game.GetWidth(), game.GetHeight(), 16);
 	ChangeWindowMode(true);
-	//グラフィックの描画先を裏画面にセット
 
+	//グラフィックの描画先を裏画面にセット
 	SetDrawScreen(DX_SCREEN_BACK);
 
 	//DXライブラリ初期化処理
@@ -787,12 +517,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 	//変数の初期化処理
 	game.initialize();
 
+
 	while (ProcessMessage() == 0 && CheckHitKey(KEY_INPUT_ESCAPE) == 0)
 	{
 		//アップデート関数を使いプレイヤーや、敵の動きを呼び出す
 		game.Update();
 
-		
+		//プレイヤーにgameへの参照をセット
+		player.SetGame(game);
+
 		// Windows 特有の面倒な処理をＤＸライブラリにやらせる
 		// -1 が返ってきたらループを抜ける
 		if (ProcessMessage() < 0) break;
