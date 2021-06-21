@@ -2,8 +2,10 @@
 #include "Player.h"
 #include<math.h>
 
-void Player::SetGame(Game& g) {
-	game = g;
+Game* gameptr;
+
+void Player::SetGame(Game* g) {
+	gameptr = g;
 }
 
 void Player::initialize()
@@ -23,8 +25,6 @@ void Player::initialize()
 	PackmanMoveValue = 5;
 
 	ShotSpeed = 10;
-
-
 
 	//弾のグラフィックをメモリにロード
 	ShotGraph = LoadGraph("../Graphic/Shot.png");
@@ -79,7 +79,7 @@ void Player::PlayerMove()
 			//パックマンのアニメーション
 			{
 				if (set == 3)
-					set = game.Coroutine(60);
+					set = gameptr->Coroutine(60);
 
 				//パックマンが動いているなら絵が切り替わるかためにカウンタを加算する
 				if (BallMoveFlag == 1)
@@ -164,8 +164,8 @@ void Player::PlayerMove()
 								sx = ShotX[i] + ShotW / 2;
 								sy = ShotY[i] + ShotH / 2;
 
-								bx = (double)game.GetPosX() + (double)game.GetEbw() / 2;
-								by = (double)game.GetPosY() + (double)game.GetEbh() / 2;
+								bx = (double)gameptr->GetPosX() + (double)gameptr->GetEbw() / 2;
+								by = (double)gameptr->GetPosY() + (double)gameptr->GetEbh() / 2;
 
 								sbx = bx - sx;
 								sby = by - sy;
@@ -199,15 +199,15 @@ void Player::PlayerMove()
 		}
 
 		//パックマンが画面左端からはみ出しそうになっていたら画面内の座標に戻してあげる
-		if (PackmanX < -64)PackmanX = game.GetWidth();
+		if (PackmanX < -64)PackmanX = gameptr->GetWidth();
 
 		//パックマンが画面右端からはみ出しそうになったら画面内に戻してあげる
-		if (PackmanX > game.GetWidth())PackmanX = 0;
+		if (PackmanX > gameptr->GetWidth())PackmanX = 0;
 
 		// パックマンが画面上端からはみ出そうになっていたら画面内の座標に戻してあげる
-		if (PackmanY < -64)PackmanY = game.GetHeight();
+		if (PackmanY < -64)PackmanY = gameptr->GetHeight();
 		// パックマンが画面下端からはみ出そうになっていたら画面内の座標に戻してあげる
-		if (PackmanY > game.GetHeight())PackmanY = 0;
+		if (PackmanY > gameptr->GetHeight())PackmanY = 0;
 
 		DrawRotaGraph2(PackmanX, PackmanY, 16, 16, 1, Packmanrotate, Packman[set], TRUE, PackmanReverse);
 	}
@@ -224,101 +224,34 @@ void Player::ShotMove()
 			ShotY[i] += ShotSy;
 
 			//画面外に出てしまった場合は存在状態を保持している変数に0（存在しない）を代入する
-			if (ShotY[i] > game.GetHeight() || ShotY[i] < 0 ||
-				ShotX[i]>game.GetWidth() || ShotX[i] < 0)
+			if (ShotY[i] > gameptr->GetHeight() || ShotY[i] < 0 ||
+				ShotX[i]>gameptr->GetWidth() || ShotX[i] < 0)
 				ShotFlag[i] = 0;
 
 			//ブリンキーとの当たり判定
-			if (((ShotX[i] > game.GetPosX() && ShotX[i] < game.GetPosX() + game.GetEnemyW()) ||
-				(game.GetPosX() > ShotX[i] && game.GetPosX() < ShotX[i] + ShotW)) &&
-				((ShotY[i] > game.GetPosY() && ShotY[i] < game.GetPosY() + game.GetEnemyH()) ||
-					(game.GetPosY() > ShotY[i] && game.GetPosY() < ShotY[i] + ShotH)))
+			if (((ShotX[i] > gameptr->GetPosX() && ShotX[i] < gameptr->GetPosX() + gameptr->GetEnemyW()) ||
+				(gameptr->GetPosX() > ShotX[i] && gameptr->GetPosX() < ShotX[i] + ShotW)) &&
+				((ShotY[i] > gameptr->GetPosY() && ShotY[i] < gameptr->GetPosY() + gameptr->GetEnemyH()) ||
+					(gameptr->GetPosY() > ShotY[i] && gameptr->GetPosY() < ShotY[i] + ShotH)))
 			{
 
-				if (game.GetDamageFlag() == 0)
+				if (gameptr->GetDamageFlag() == 0)
 					//ヒットカウントを加算する
-					game.EnemyHitCount();
+					gameptr->EhitCount++;
 
 				//ブリンキーがダメージを受けているかどうかを保持する変数に『受けている』を表す１を代入
-				game.DamageFlag(1);
+				gameptr->BlinkyDamageFlag = 1;
 
 				PlaySoundMem(HitAudio, DX_PLAYTYPE_BACK);
 
 				//ブリンキーがダメージを受けている時間を測るカウンタ変数に０を代入
-				game.DamageCounter(0);
+				gameptr->BlinkyDamageCounter = 0;
 
 				//接触している場合は当たった弾の存在を消す
 				ShotFlag[i] = 0;
 			}
-
-
 			//画面に弾 i を描画する
 			DrawGraph((int)ShotX[i], (int)ShotY[i], ShotGraph, TRUE);
-		}
-
-
-
-
-	}
-}
-//void Player::ItemGeneration()
-//{
-//
-//#pragma region アイテム関連
-//
-//	if (ItemFlag == 0)
-//	{
-//		ItemCounter++;
-//		if (ItemCounter == 1000)
-//		{
-//			ItemFlag = 1;
-//			ItemCounter = 0;
-//		}
-//	}
-//
-//	if (ItemFlag == 1)
-//	{
-//		DrawGraph(ItemX, ItemY, Item, TRUE);
-//
-//		if (((ItemX > PackmanX && ItemX < PackmanX + Bw) ||
-//			(PackmanX > ItemX && PackmanX < ItemX + ItemW)) &&
-//			((ItemY > PackmanY && ItemY < PackmanY + Bh) ||
-//				(PackmanY > ItemY && PackmanY < ItemY + ItemH)))
-//		{
-//			Item = 0;
-//
-//			ItemGet = 1;
-//
-//			StopSoundMem(AudioSound[1]);
-//		}
-//	}
-//
-//	if (ItemGet == 1)
-//	{
-//		if (ItemGet == 1)
-//		{
-//			PackmanMoveValue = 10;
-//			ItemGetCounter = 1;
-//
-//			if (CheckSoundMem(PowerUpAudio) == 0)
-//			{
-//				PackmanMoveValue = 5;
-//			}
-//			else
-//				ItemGetCounter = 0;
-//		}
-//	}
-//
-//#pragma endregion
-//}
-void Player::ShotHitCheck()
-{
-	for (i = 0; i < SHOT; i++)
-	{
-		//弾iが存在している場合のみ次の処理に映る
-		if (ShotFlag[i] == 1)
-		{
-			
 		}
 	}
 }

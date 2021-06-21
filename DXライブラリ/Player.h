@@ -1,10 +1,10 @@
 #pragma once
+#include"Game.h"
 
 #define PI 3.1415926535897932384626433832795f
 #define SHOT 5
 #define ITEM 5
 
-#include"Game.h"
 
 class Player {
 	int PackmanX, PackmanY, Packman[5], PackmanReverse;
@@ -35,13 +35,13 @@ class Player {
 
 	int ShotAudio, HitAudio;
 
-	Game game;
+	int* EhitCount;
+	int* EDamageCounter;
+	int* EDamageFlag;
 
 public:
 
-	Player() = default;
-
-	void SetGame(Game& g);
+	void SetGame(Game* g);
 
 	void initialize();
 	void PlayerMove();
@@ -57,7 +57,6 @@ public:
 	void HitCount() { hitCount++; };
 	void DamegeFlag(int flag) { PackmanDamageFlag = flag; };
 	void DamageCounter(int counter) { PackmanDamageCounter = counter; };
-
-	void ShotHitCheck();
+	void SetMoveValue(int value) { PackmanMoveValue = value; };
 
 };

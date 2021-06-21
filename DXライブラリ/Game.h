@@ -49,9 +49,6 @@ class Game {
 
 
 
-	//ブリンキーにヒットしたカウント
-	int EhitCount;
-	int BlinkyDamageFlag, BlinkyDamageCounter;
 
 	int ShotAudio, HitAudio;
 
@@ -75,10 +72,13 @@ public:
 	void initialize();
 	void Update();
 	void ShotPlayAudio();
+
+	void ItemGeneration();
+
 	void EnemyHitCount() { EhitCount++; };
 	void DamageFlag(int flag)
 	{
-		BlinkyDamageFlag = flag;
+		BlinkyDamageFlag =flag;
 	};
 	int GetDamageFlag() { return BlinkyDamageFlag; };
 
@@ -95,6 +95,12 @@ public:
 	int GetEnemyW() { return BlinkyW; };
 	int GetEnemyH() { return BlinkyH; };
 
+	//ブリンキーにヒットしたカウント
+	int EhitCount;
+	int BlinkyDamageFlag, BlinkyDamageCounter;
 
+};
+
+class Enemy{
 
 };

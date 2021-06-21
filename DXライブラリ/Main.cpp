@@ -20,12 +20,6 @@ void Game::initialize()
 	sceneGraph[1] = LoadGraph("../Graphic/GameClear.png");
 	sceneGraph[2] = LoadGraph("../Graphic/GameOver.png");
 
-	Level = 1;
-	Input = 0;
-	Count = 0;
-
-	AudioOneShot = 0;
-
 	ShotAudio = LoadSoundMem("../BGM/ショット.mp3");
 	HitAudio = LoadSoundMem("../BGM/ショット命中.mp3");
 	PowerUpAudio = LoadSoundMem("../BGM/PowerUp.mp3");
@@ -34,25 +28,22 @@ void Game::initialize()
 	AudioSound[1] = LoadSoundMem("../BGM/TETRIS.mp3");
 	AudioSound[2] = LoadSoundMem("../BGM/コックカワサキ.mp3");
 
-	ItemGet = 0;
-	ItemGetCounter = 0;
 
+	//ブリンキーのダメージ時のグラフィックをメモリにロード
+	BlinkyDamageGraph = LoadGraph("../Graphic/ゴースト.png");
+
+	//敵の弾のグラフィックをロード
+	ETamaGraph = LoadGraph("../Graphic/EShot.png");
 
 	Item = LoadGraph("../Graphic/Cherry.png");
 
-
-	ItemX = GetRand(WindowWidth - 50) + 20;
-	ItemY = GetRand(WindowHeight - 50) + 20;
-
-
 	//ブリンキーのグラフィックをメモリにロード＆表示座標をセット
 	BlinkyGraph = LoadGraph("../Graphic/ブリンキー.png");
-	BlinkyX = 640; BlinkyY = 100; Blinkyreverse = FALSE;
-	BlinkyMukiCounter = 0;
 
-	BlinkyDamageCounter = 0;
 
-	LoadScene = 0;
+	Level = 1;
+	Input = 0;
+	Count = 0;
 
 }
 /// <summary>
@@ -130,31 +121,22 @@ void Game::Update()
 				break;
 			}
 
-			//ブリンキーのダメージ時のグラフィックをメモリにロード
-			BlinkyDamageGraph = LoadGraph("../Graphic/ゴースト.png");
-
-			//敵の弾のグラフィックをロード
-			ETamaGraph = LoadGraph("../Graphic/EShot.png");
-
-
-
 			//ブリンキーがダメージを受けているかどうかの変数に『受けていない』を表す0を代入
 			BlinkyDamageFlag = 0;
 
 			//敵の弾のグラフィックサイズを得る
 			GetGraphSize(ETamaGraph, &ETamaW, &ETamaH);
 
+			BlinkyX = 640; BlinkyY = 100; Blinkyreverse = FALSE;
+			BlinkyMukiCounter = 0;
+
+			BlinkyDamageCounter = 0;
+
 			//敵の弾が飛んでいるかどうかを保持する変数に『飛んでいない』を表す０を代入
 			ETamaFlag = 0;
 
 			//敵が弾を打つタイミングを取るための計測用変数に0を代入
 			ETamaCounter = 0;
-
-			//ITEMのグラフィックサイズを得る
-			GetGraphSize(Item, &ItemW, &ItemH);
-
-
-			ItemFlag = 0;
 
 			//ブリンキーの移動方向をセット
 			BlinkyMuki = 1;
@@ -168,7 +150,23 @@ void Game::Update()
 
 			EhitCount = 0;
 
+
+			AudioOneShot = 0;
+
+			ItemGet = 0;
+			ItemGetCounter = 0;
+			LoadScene = 0;
+
+			//ITEMのグラフィックサイズを得る
+			GetGraphSize(Item, &ItemW, &ItemH);
+
+
+			ItemX = GetRand(WindowWidth - 50) + 20;
+			ItemY = GetRand(WindowHeight - 50) + 20;
+		
 			ItemCounter = 0;
+
+			ItemFlag = 0;
 
 #pragma endregion	
 
@@ -317,9 +315,6 @@ void Game::Update()
 		//弾の数だけ弾を動かす処理を繰り返す
 		player.ShotMove();
 
-		//弾と敵の当たり判定、弾の数だけ繰り返す
-		//player.ShotHitCheck();
-
 		//敵の弾の状態が『飛んでいる』場合のみ弾の移動処理を行う
 		if (ETamaFlag == 1)
 		{
@@ -361,8 +356,9 @@ void Game::Update()
 
 		//player.ItemGeneration();
 
+		ItemGeneration();
 
-		DrawFormatString(0, 0, white, "ブリンキーにあてた回数 : %d \n 当たった回数 : %d", BlinkyDamageCounter, BlinkyDamageFlag);
+		DrawFormatString(0, 0, white, "ブリンキーにあてた回数 : %d \n 当たった回数 : %d", EhitCount, player.GetHitCount());
 		DrawFormatString(850, 0, white, "space :弾を発射 \n十字キー : 移動");
 
 		fps.Update();	//更新
@@ -524,7 +520,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 		game.Update();
 
 		//プレイヤーにgameへの参照をセット
-		player.SetGame(game);
+		player.SetGame(&game);
 
 		// Windows 特有の面倒な処理をＤＸライブラリにやらせる
 		// -1 が返ってきたらループを抜ける
@@ -537,6 +533,58 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR IpcmdLine
 	DxLib::DxLib_End();
 
 	return 0;
+}
+
+
+void Game::ItemGeneration()
+{
+
+#pragma region アイテム関連
+
+	if (ItemFlag == 0)
+	{
+		ItemCounter++;
+		if (ItemCounter == 1000)
+		{
+			ItemFlag = 1;
+			ItemCounter = 0;
+		}
+	}
+
+	if (ItemFlag == 1)
+	{
+		DrawGraph(ItemX, ItemY, Item, TRUE);
+
+		if (((ItemX > player.GetPosX() && ItemX < player.GetPosX() + player.GetBw()) ||
+			(player.GetPosX() > ItemX && player.GetPosX() < ItemX + ItemW)) &&
+			((ItemY > player.GetPosY() && ItemY < player.GetPosY() + player.GetBh()) ||
+				(player.GetPosY() > ItemY && player.GetPosY() < ItemY + ItemH)))
+		{
+			Item = 0;
+
+			ItemGet = 1;
+
+			StopSoundMem(AudioSound[1]);
+		}
+	}
+
+	if (ItemGet == 1)
+	{
+		if (ItemGet == 1)
+		{
+			player.SetMoveValue(10);
+			ItemGetCounter = 1;
+
+			if (CheckSoundMem(PowerUpAudio) == 0)
+			{
+				player.SetMoveValue(5);
+			}
+			else
+				ItemGetCounter = 0;
+		}
+	}
+
+#pragma endregion
 }
 
 /// <summary>
